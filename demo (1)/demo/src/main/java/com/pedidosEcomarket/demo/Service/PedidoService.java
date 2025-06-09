@@ -1,13 +1,13 @@
 package com.pedidosEcomarket.demo.Service;
 
-import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import com.pedidosEcomarket.demo.Model.EstadoPedido;
 import com.pedidosEcomarket.demo.Model.Pedido;
 import com.pedidosEcomarket.demo.Repository.PedidoRepository;
-import jakarta.transaction.Transactional;
 
 @Service
 @Transactional
@@ -16,45 +16,39 @@ public class PedidoService {
     @Autowired
     private PedidoRepository pedidoRepository;
 
-    public List<Pedido> listarTodos() {
-        return pedidoRepository.findAll();
+    public Pedido crearPedido(Pedido pedido) {
+        if (pedidoRepository.existsByCodigoSeguimiento(pedido.getCodigoSeguimiento())) {
+            throw new RuntimeException("El código de seguimiento ya existe");
+        }
+        return pedidoRepository.save(pedido);
     }
 
-    public Pedido crearPedido(Pedido nuevoPedido) {
-        return pedidoRepository.save(nuevoPedido);
-    }
+    public Pedido actualizarEstado(Long id, EstadoPedido nuevoEstado) {
+        Pedido pedido = pedidoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Pedido no encontrado"));
 
-    public void avanzarEstado(Integer id) {
-        Pedido pedido = pedidoRepository.findById(id.longValue())
-            .orElseThrow(() -> new RuntimeException("Pedido no encontrado"));
-
-        switch (pedido.getEstado()) {
-            case EN_PREPARACION:
-                pedido.setEstado(Pedido.Estado.EN_CAMINO);
-                break;
-            case EN_CAMINO:
-                pedido.setEstado(Pedido.Estado.ENTREGADO);
-                break;
-            case ENTREGADO:
-                throw new IllegalStateException("El pedido ya fue entregado");
-            case CANCELADO:
-                throw new IllegalStateException("El pedido está cancelado");
+        // Validar transiciones válidas
+        if (pedido.getEstado() == EstadoPedido.RECIBIDO && nuevoEstado == EstadoPedido.EN_RUTA) {
+            pedido.setEstado(nuevoEstado);
+        } else if (pedido.getEstado() == EstadoPedido.EN_RUTA && 
+                  (nuevoEstado == EstadoPedido.ENTREGADO || nuevoEstado == EstadoPedido.RECHAZADO)) {
+            pedido.setEstado(nuevoEstado);
+        } else {
+            throw new IllegalStateException("Transición de estado no permitida");
         }
 
-        pedidoRepository.save(pedido);
+        return pedidoRepository.save(pedido);
     }
-
-    public void actualizarEstado(Integer id, Pedido.Estado nuevoEstado) {
-        Pedido pedido = pedidoRepository.findById(id.longValue())
-            .orElseThrow(() -> new RuntimeException("Pedido no encontrado"));
-
-        pedido.setEstado(nuevoEstado);
-        pedidoRepository.save(pedido);
+    public Pedido buscarPorCodigo(String codigoSeguimiento){
+        return pedidoRepository.findByCodigoSeguimiento(codigoSeguimiento)
+            .orElseThrow(() -> new PedidoNotFoundException(
+                "No se encontró ningún pedido con el código de seguimiento: " + codigoSeguimiento
+            ));
+}
     }
+    
 
-    public void eliminarPedido(Integer id) {
-    Pedido pedido = pedidoRepository.findById(id.longValue())
-        .orElseThrow(() -> new RuntimeException("Pedido no encontrado"));
-    pedidoRepository.delete(pedido);
-}
-}
+
+
+
+

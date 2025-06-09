@@ -1,57 +1,36 @@
 package com.pedidosEcomarket.demo.Model;
+
+import java.time.LocalDateTime;
+
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "pedido")
+@Table(name = "pedidos")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-
 public class Pedido {
-   public enum Estado {
-        EN_PREPARACION("En preparación"),
-        EN_CAMINO("En camino"),
-        ENTREGADO("Entregado"),
-        CANCELADO("Cancelado");
-
-        private final String descripcion;
-
-        Estado(String descripcion) {
-            this.descripcion = descripcion;
-        }
-
-        public String getDescripcion() {
-            return descripcion;
-        }
-    }
-
-    @Id
+    
+     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    private Long id;
 
-    @Column(nullable = false)
-    private String codigoPedido;
+    @Column(name = "codigo_seguimiento", nullable = false, unique = true)
+    private String codigoSeguimiento; // Código único para tracking
 
-    @Column(nullable = false)
-    private String cliente;
-
-    @Column(nullable = false)
-    private String fechaPedido;
-
-    @Column(nullable = false)
-    private String fechaEntrega;
-
-    @Column(nullable = false)
-    private String direccionEntrega;
-
+    @Column(name = "estado", nullable = false)
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private Estado estado;
+    private EstadoPedido estado; // RECIBIDO, EN_RUTA, ENTREGADO, RECHAZADO
 
-    @Column(nullable = false)
-    private Double total;
-} 
+    @Column(name = "fecha_creacion", updatable = false)
+    private LocalDateTime fechaCreacion = LocalDateTime.now();
+
+    // Campos adicionales 
+    @Column(name = "cliente_id")
+    private String clienteId;
+}
+
 
